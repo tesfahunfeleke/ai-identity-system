@@ -1,0 +1,9 @@
+{
+  "title": "Quick chat",
+  "created_at": "2026-03-22T14:00:00Z",
+  "messages": [
+    {"role": "user", "content": "I live in Austin and I work at a small design studio."},
+    {"role": "assistant", "content": "Nice, how long have you been there?"},
+    {"role": "user", "content": "About three years now. My favorite coffee order is an oat milk flat white."}
+  ]
+}

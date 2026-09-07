@@ -1,0 +1,29 @@
+[
+  {
+    "title": "Career thoughts",
+    "create_time": 1741900800,
+    "mapping": {
+      "node1": {
+        "message": {
+          "author": {"role": "user"},
+          "content": {"parts": ["I work at a small design studio and I'm thinking about freelancing."]},
+          "create_time": 1741900800
+        }
+      },
+      "node2": {
+        "message": {
+          "author": {"role": "assistant"},
+          "content": {"parts": ["That's a big decision -- what's motivating the change?"]},
+          "create_time": 1741900850
+        }
+      },
+      "node3": {
+        "message": {
+          "author": {"role": "user"},
+          "content": {"parts": ["Mostly wanting more flexibility. My favorite part of the job is the creative freedom, but the commute is rough."]},
+          "create_time": 1741900900
+        }
+      }
+    }
+  }
+]

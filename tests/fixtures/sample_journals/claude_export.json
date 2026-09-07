@@ -1,0 +1,11 @@
+[
+  {
+    "name": "Weekend plans",
+    "created_at": "2026-03-21T09:00:00Z",
+    "chat_messages": [
+      {"sender": "human", "text": "My partner is Jamie and we're trying to plan a quiet weekend trip."},
+      {"sender": "assistant", "text": "What kind of quiet did you have in mind -- nature, a cabin, somewhere coastal?"},
+      {"sender": "human", "text": "Probably nature. My favorite season is autumn so we're hoping to catch some color, even though it's early for that."}
+    ]
+  }
+]
