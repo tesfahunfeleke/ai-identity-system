@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101416">
+  <title>Identity Console</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --ink: #e8eee9;
+      --muted: #8e9b96;
+      --panel: #171d1d;
+      --panel-raised: #1d2524;
+      --line: #2a3533;
+      --accent: #d7f36b;
+      --accent-dim: #95ad4e;
+      --cyan: #83d9d0;
+      --danger: #f29a8f;
+      --shadow: 0 18px 55px rgba(0, 0, 0, .2);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #101416;
+      font-family: Manrope, sans-serif;
+      line-height: 1.5;
+    }
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      content: "";
+      opacity: .32;
+      background: radial-gradient(circle at 88% 4%, #29413d 0, transparent 28rem),
+        linear-gradient(135deg, transparent 0 48%, rgba(215, 243, 107, .035) 48% 48.2%, transparent 48.2%);
+    }
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 60px; }
+    header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+    .eyebrow, .label, .meta { color: var(--muted); font: 500 .72rem/1.2 'DM Mono', monospace; letter-spacing: .05em; text-transform: uppercase; }
+    h1 { margin: 7px 0 0; font-size: clamp(2rem, 5vw, 4.4rem); letter-spacing: -.07em; line-height: .98; }
+    .lede { max-width: 430px; margin: 12px 0 0; color: var(--muted); font-size: .95rem; }
+    .connection { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--line); background: rgba(23, 29, 29, .72); font: 500 .75rem 'DM Mono', monospace; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px rgba(215, 243, 107, .1); }
+    .dot.offline { background: var(--danger); box-shadow: 0 0 0 5px rgba(242, 154, 143, .1); }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+    .card { border: 1px solid var(--line); background: linear-gradient(145deg, rgba(29, 37, 36, .94), rgba(23, 29, 29, .92)); box-shadow: var(--shadow); }
+    .stat { min-height: 135px; padding: 20px; }
+    .stat-value { margin-top: 22px; color: var(--accent); font-size: 2rem; font-weight: 700; letter-spacing: -.06em; }
+    .layout { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; }
+    .section { min-height: 220px; padding: 24px; }
+    .section h2 { margin: 0 0 20px; font-size: 1.05rem; letter-spacing: -.02em; }
+    .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .empty { display: grid; min-height: 120px; place-items: center; border: 1px dashed var(--line); color: var(--muted); text-align: center; font-size: .86rem; }
+    .insight-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .insight-list li { padding: 12px 14px; border-left: 2px solid var(--accent-dim); background: rgba(16, 20, 22, .5); font-size: .88rem; }
+    .insight-list strong { display: block; color: var(--cyan); font: 500 .7rem 'DM Mono', monospace; text-transform: uppercase; margin-bottom: 4px; }
+    footer { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; color: var(--muted); font: .7rem 'DM Mono', monospace; }
+    @media (max-width: 760px) { .shell { width: min(100% - 24px, 560px); padding-top: 24px; } header { display: block; } .connection { margin-top: 24px; width: fit-content; } .stats { grid-template-columns: repeat(2, 1fr); } .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 390px) { .stats { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">Digital twin / command center</div>
+        <h1>Identity<br>console.</h1>
+        <p class="lede">A quiet view into the system's memory, patterns, and current signal.</p>
+      </div>
+      <div class="connection"><span id="status-dot" class="dot offline"></span><span id="status-text">Connecting</span></div>
+    </header>
+
+    <section class="stats" aria-label="System statistics">
+      <article class="card stat"><div class="label">Memory chunks</div><div id="memory-count" class="stat-value">--</div></article>
+      <article class="card stat"><div class="label">Facts</div><div id="facts-count" class="stat-value">--</div></article>
+      <article class="card stat"><div class="label">Conversations</div><div id="conversation-count" class="stat-value">--</div></article>
+      <article class="card stat"><div class="label">Environment</div><div id="environment" class="stat-value" style="font-size:1.3rem; margin-top:28px">--</div></article>
+    </section>
+
+    <section class="layout">
+      <article class="card section">
+        <div class="section-heading"><h2>Recent memories</h2><span class="meta">Latest signal</span></div>
+        <div id="memories" class="empty">Recent memory feed is not exposed by the API yet.</div>
+      </article>
+      <article class="card section">
+        <div class="section-heading"><h2>Recent conversations</h2><span class="meta">Dialogue log</span></div>
+        <div id="conversations" class="empty">Conversation history will appear here when available.</div>
+      </article>
+      <article class="card section" style="grid-column: 1 / -1">
+        <div class="section-heading"><h2>Proactive insights</h2><span id="insight-time" class="meta">Awaiting refresh</span></div>
+        <div id="insights" class="empty">Loading patterns and suggestions...</div>
+      </article>
+    </section>
+    <footer><span>AI Identity System</span><span id="updated">Last update: --</span></footer>
+  </main>
+
+  <script>
+    const text = (value) => typeof value === 'string' ? value : JSON.stringify(value);
+    const escapeHtml = (value) => text(value).replace(/[&<>'"]/g, (character) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[character]));
+    const set = (id, value) => { document.getElementById(id).textContent = value; };
+
+    async function getJson(path) {
+      const response = await fetch(path, { headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      return response.json();
+    }
+
+    function renderInsights(data) {
+      const target = document.getElementById('insights');
+      const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+      const patterns = data.patterns || {};
+      const items = suggestions.map((suggestion) => `<li><strong>Suggestion</strong>${escapeHtml(suggestion)}</li>`);
+      Object.entries(patterns).forEach(([name, value]) => {
+        if (value && typeof value === 'object' && Object.keys(value).length) {
+          items.push(`<li><strong>${escapeHtml(name)}</strong>${escapeHtml(value)}</li>`);
+        }
+      });
+      target.className = items.length ? 'insight-list' : 'empty';
+      target.innerHTML = items.length ? items.join('') : 'No proactive signals have been detected yet.';
+    }
+
+    async function refresh() {
+      const [health, stats, insights] = await Promise.allSettled([
+        getJson('/health'), getJson('/memory/stats'), getJson('/proactive/insights')
+      ]);
+      const online = health.status === 'fulfilled';
+      document.getElementById('status-dot').classList.toggle('offline', !online);
+      set('status-text', online ? 'System online' : 'System offline');
+      if (health.status === 'fulfilled') set('environment', health.value.environment || 'online');
+      if (stats.status === 'fulfilled') set('memory-count', stats.value.total_vector_chunks ?? 0);
+      if (insights.status === 'fulfilled') renderInsights(insights.value);
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      set('updated', `Last update: ${now}`);
+      set('insight-time', `Refreshed ${now}`);
+    }
+
+    refresh();
+    window.setInterval(refresh, 30000);
+  </script>
+</body>
+</html>

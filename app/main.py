@@ -5,6 +5,8 @@ Run with: uvicorn app.main:app --reload
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api import health, ingestion, search, chat, memory, proactive
 from app.core.config import settings
@@ -35,6 +37,13 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.mount("/static", StaticFiles(directory="app/static", html=True), name="static")
+
+
+@app.get("/dashboard", include_in_schema=False)
+async def dashboard():
+    return RedirectResponse(url="/static/index.html")
 
 
 # Root endpoint
