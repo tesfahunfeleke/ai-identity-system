@@ -59,6 +59,20 @@
     .insight-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
     .insight-list li { padding: 12px 14px; border-left: 2px solid var(--accent-dim); background: rgba(16, 20, 22, .5); font-size: .88rem; }
     .insight-list strong { display: block; color: var(--cyan); font: 500 .7rem 'DM Mono', monospace; text-transform: uppercase; margin-bottom: 4px; }
+    .voice-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .voice-btn { padding: 10px 16px; border: 1px solid var(--cyan); color: #101416; background: var(--cyan); font: 600 .8rem Manrope, sans-serif; cursor: pointer; }
+    .voice-btn:hover { background: var(--accent); box-shadow: 0 0 20px rgba(131, 217, 208, .25); }
+    .voice-toggle { display: flex; align-items: center; gap: 8px; color: var(--cyan); font-size: .8rem; }
+    .voice-panel { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .mic-button { width: 58px; height: 58px; border: 1px solid var(--accent); border-radius: 50%; color: #101416; background: var(--accent); font-size: 1.35rem; cursor: pointer; }
+    .mic-button.recording { border-color: var(--danger); color: var(--ink); background: var(--danger); }
+    .mic-button:disabled { cursor: wait; opacity: .55; }
+    .voice-copy { flex: 1; min-width: 180px; }
+    .voice-status { margin: 5px 0 0; color: var(--muted); font-size: .85rem; }
+    .voice-output { width: 100%; display: grid; gap: 8px; margin-top: 4px; }
+    .voice-output p { margin: 0; color: var(--muted); font-size: .82rem; }
+    .voice-output strong { color: var(--ink); }
+    .user-id { width: 140px; padding: 9px 10px; border: 1px solid var(--line); color: var(--ink); background: #101416; font: .75rem 'DM Mono', monospace; }
     footer { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; color: var(--muted); font: .7rem 'DM Mono', monospace; }
     @media (max-width: 760px) { .shell { width: min(100% - 24px, 560px); padding-top: 24px; } header { display: block; } .connection { margin-top: 24px; width: fit-content; } .stats { grid-template-columns: repeat(2, 1fr); } .layout { grid-template-columns: 1fr; } }
     @media (max-width: 390px) { .stats { grid-template-columns: 1fr; } }
@@ -72,7 +86,11 @@
         <h1>Identity<br>console.</h1>
         <p class="lede">A quiet view into the system's memory, patterns, and current signal.</p>
       </div>
-      <div class="connection"><span id="status-dot" class="dot offline"></span><span id="status-text">Connecting</span></div>
+      <div class="voice-controls">
+        <button class="voice-btn" type="button" onclick="startVoiceInput()">&#127908; Speak</button>
+        <label class="voice-toggle"><input type="checkbox" id="voice-output-toggle" checked> &#128266; Voice</label>
+        <div class="connection"><span id="status-dot" class="dot offline"></span><span id="status-text">Connecting</span></div>
+      </div>
     </header>
 
     <section class="stats" aria-label="System statistics">
@@ -94,6 +112,15 @@
       <article class="card section" style="grid-column: 1 / -1">
         <div class="section-heading"><h2>Proactive insights</h2><span id="insight-time" class="meta">Awaiting refresh</span></div>
         <div id="insights" class="empty">Loading patterns and suggestions...</div>
+      </article>
+      <article class="card section" style="grid-column: 1 / -1">
+        <div class="section-heading"><h2>Voice channel</h2><span class="meta">Browser microphone</span></div>
+        <div class="voice-panel">
+          <button id="mic-button" class="mic-button" type="button" aria-label="Start recording">&#127908;</button>
+          <div class="voice-copy"><div class="label">Talk to your twin</div><p id="voice-status" class="voice-status">Ready</p></div>
+          <label class="label" for="voice-user-id">User ID</label><input id="voice-user-id" class="user-id" value="dashboard-user" autocomplete="off">
+          <div id="voice-output" class="voice-output" hidden><p><strong>You:</strong> <span id="voice-transcript"></span></p><p><strong>Twin:</strong> <span id="voice-response"></span></p><audio id="voice-player" controls></audio></div>
+        </div>
       </article>
     </section>
     <footer><span>AI Identity System</span><span id="updated">Last update: --</span></footer>
@@ -140,6 +167,104 @@
       set('updated', `Last update: ${now}`);
       set('insight-time', `Refreshed ${now}`);
     }
+
+    let recorder;
+    let recordingChunks = [];
+    const micButton = document.getElementById('mic-button');
+    const voiceStatus = document.getElementById('voice-status');
+
+    function setVoiceStatus(message) { voiceStatus.textContent = message; }
+
+    let recognition = null;
+
+    function startVoiceInput() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setVoiceStatus('Speech recognition is not supported. Please use Chrome or Edge.');
+        return;
+      }
+      recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.onstart = () => setVoiceStatus('Listening...');
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setVoiceStatus(`You said: "${transcript}"`);
+        sendVoiceMessage(transcript);
+      };
+      recognition.onerror = (event) => setVoiceStatus(`Speech recognition error: ${event.error}`);
+      recognition.onend = () => { if (voiceStatus.textContent === 'Listening...') setVoiceStatus('Ready'); };
+      recognition.start();
+    }
+
+    async function sendVoiceMessage(message) {
+      try {
+        const response = await fetch('/chat/', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        });
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        const data = await response.json();
+        document.getElementById('voice-transcript').textContent = message;
+        document.getElementById('voice-response').textContent = data.response;
+        document.getElementById('voice-output').hidden = false;
+        if (document.getElementById('voice-output-toggle').checked) await playVoiceResponse(data.response);
+        setVoiceStatus('Reply ready. Press Speak to try again.');
+      } catch (error) { setVoiceStatus(`Voice request failed: ${error.message}`); }
+    }
+
+    async function playVoiceResponse(message) {
+      const formData = new FormData();
+      formData.append('text', message);
+      const response = await fetch('/voice/speak', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const player = document.getElementById('voice-player');
+      player.src = URL.createObjectURL(await response.blob());
+      await player.play();
+    }
+
+    async function sendVoice(audioBlob) {
+      setVoiceStatus('Sending audio to your twin...');
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'dashboard-recording.webm');
+      formData.append('user_id', document.getElementById('voice-user-id').value || 'dashboard-user');
+      const response = await fetch('/voice/', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const responseAudio = await response.blob();
+      document.getElementById('voice-transcript').textContent = response.headers.get('X-Transcript') || 'Unavailable';
+      document.getElementById('voice-response').textContent = response.headers.get('X-Response-Text') || 'Unavailable';
+      const player = document.getElementById('voice-player');
+      player.src = URL.createObjectURL(responseAudio);
+      document.getElementById('voice-output').hidden = false;
+      if (document.getElementById('voice-output-toggle').checked) await player.play();
+      setVoiceStatus('Reply ready. Press the microphone to speak again.');
+    }
+
+    micButton.addEventListener('click', async () => {
+      if (recorder?.state === 'recording') { recorder.stop(); return; }
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        setVoiceStatus('Voice recording is not supported in this browser.');
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recordingChunks = [];
+        recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        recorder.addEventListener('dataavailable', (event) => { if (event.data.size) recordingChunks.push(event.data); });
+        recorder.addEventListener('stop', async () => {
+          stream.getTracks().forEach((track) => track.stop());
+          micButton.classList.remove('recording');
+          micButton.disabled = true;
+          try { await sendVoice(new Blob(recordingChunks, { type: 'audio/webm' })); }
+          catch (error) { setVoiceStatus(`Voice request failed: ${error.message}`); }
+          finally { micButton.disabled = false; }
+        }, { once: true });
+        recorder.start();
+        micButton.classList.add('recording');
+        setVoiceStatus('Recording... press the microphone to stop.');
+      } catch (error) { setVoiceStatus(`Microphone access failed: ${error.message}`); }
+    });
 
     refresh();
     window.setInterval(refresh, 30000);
