@@ -18,13 +18,13 @@ services:
       - key: API_BASE_URL
         value: https://ai-identity-system.onrender.com
 
-  # Worker — Telegram bot (runs 24/7, no VPN needed)
-  - type: worker
+  # Web service — Telegram bot and health endpoints
+  - type: web
     name: ai-identity-telegram-bot
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python run_bot.py
+    startCommand: python run_bot_web.py
     envVars:
       - key: APP_ENV
         value: production
