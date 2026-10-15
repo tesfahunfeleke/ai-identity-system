@@ -17,6 +17,8 @@ services:
         sync: false
       - key: API_BASE_URL
         value: https://ai-identity-system.onrender.com
+      - key: PYTHON_VERSION
+        value: 3.12.0
 
   # Web service — Telegram bot and health endpoints
   - type: web
@@ -36,3 +38,5 @@ services:
         sync: false
       - key: API_BASE_URL
         value: https://ai-identity-system.onrender.com
+      - key: PYTHON_VERSION
+        value: 3.12.0
