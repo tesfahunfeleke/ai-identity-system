@@ -4,6 +4,15 @@ from typing import List, Dict, Any, Optional
 
 # Try to import chromadb, but don't fail if not available
 try:
+    import app.memory.numpy_compat
+    import numpy as np
+
+    # Ensure compatible numpy version before importing chromadb
+    if not hasattr(np, 'float_'):
+        np.float_ = np.float64
+        np.complex_ = np.complex128
+        np.unicode_ = np.str_
+
     import chromadb
     from chromadb.config import Settings
 except ImportError:
