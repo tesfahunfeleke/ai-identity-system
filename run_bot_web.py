@@ -3,17 +3,22 @@
 import logging
 import os
 import threading
+from pathlib import Path
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 load_dotenv()
 
 from app.bot.telegram_bot import TelegramBot
+from app.memory.ingestion import run_ingestion
+from app.memory.semantic_memory import SemanticMemoryService
 
 logger = logging.getLogger(__name__)
 app = FastAPI(title="AI Identity Telegram Bot")
+TRAINING_DIR = Path(__file__).resolve().parent / "data" / "training"
+TRAINING_FILE = TRAINING_DIR / "about_me.txt"
 
 
 @app.get("/health")
@@ -24,6 +29,45 @@ def health() -> dict[str, str]:
 @app.get("/")
 def root() -> dict[str, str]:
     return {"service": "AI Identity Telegram Bot", "status": "running"}
+
+
+def _ingest_training_data(memory_service: SemanticMemoryService | None = None) -> int:
+    if not TRAINING_FILE.is_file():
+        raise FileNotFoundError(f"Training file not found: {TRAINING_FILE}")
+
+    service = memory_service or SemanticMemoryService()
+    chunks = run_ingestion(TRAINING_DIR)
+    return service.index_chunks(chunks)
+
+
+def _ensure_memory_populated() -> None:
+    memory_service = SemanticMemoryService()
+    chunk_count = memory_service.vector_store.count()
+
+    if chunk_count:
+        logger.info("ChromaDB already populated with %d chunks", chunk_count)
+        return
+
+    if not TRAINING_FILE.is_file():
+        logger.warning(
+            "ChromaDB is empty and training file %s does not exist; skipping ingestion",
+            TRAINING_FILE,
+        )
+        return
+
+    logger.info("Running first-time ingestion...")
+    ingested_count = _ingest_training_data(memory_service)
+    logger.info("First-time ingestion complete: %d chunks", ingested_count)
+
+
+@app.post("/admin/ingest")
+def ingest_training_data() -> dict[str, int | str]:
+    try:
+        chunks_ingested = _ingest_training_data()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return {"status": "ok", "chunks_ingested": chunks_ingested}
 
 
 def _run_bot() -> None:
@@ -39,6 +83,8 @@ def _run_bot() -> None:
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
+    _ensure_memory_populated()
+
     bot_thread = threading.Thread(
         target=_run_bot,
         name="telegram-bot",

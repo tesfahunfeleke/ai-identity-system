@@ -4,7 +4,10 @@ __pycache__/
 .venv/
 venv/
 .env
-data/
+/data/*
+!/data/training/
+/data/training/*
+!/data/training/**
 *.db
 *.sqlite3
 
