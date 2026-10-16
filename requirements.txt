@@ -13,3 +13,4 @@ groq==1.7.0
 gTTS==2.5.4
 python-multipart==0.0.32
 chromadb==0.4.24
+numpy<2.0                    
